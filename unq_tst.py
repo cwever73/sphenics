@@ -7,8 +7,12 @@ Created on Tue Jan 18 09:40:25 2022
 """
 
 import itertools
+import numpy as np
+from PIL import Image
 import sys
 import time
+
+
 
 def gen_primes(max_index):
     """Function:
@@ -47,8 +51,6 @@ def gen_primes(max_index):
             del D[q]
         
         q += 1
-
-
 
 
 def get_sphenics(lst_lst, dct_tf):
@@ -107,13 +109,29 @@ def split_primes(gen_o_primes):
     dct_primes['prime_b'] = prime_b[:-1]
         
     return dct_primes
-            
-        
-        
 
+def unpickle(file):
+    '''From CIFAR README:   
+    data -- a 10000x3072 numpy array of uint8s. 
+            Each row of the array stores a 32x32 colour image. 
+            The first 1024 entries contain the red channel values, 
+            the next 1024 the green, and the final 1024 the blue. 
+            The image is stored in row-major order, 
+            so that the first 32 entries of the array are the red 
+            channel values of the first row of the image.
+    labels -- a list of 10000 numbers in the range 0-9. 
+            The number at index i indicates the label of the ith image 
+            in the array data.
+'''
+    import pickle
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
+            
 
 if __name__ == "__main__":
     t0 = time.time()
+    
     if sys.argv[1] == 'chck_sphncs':
         max_index = 768
         primes = gen_primes(max_index)
@@ -130,6 +148,76 @@ if __name__ == "__main__":
         print(f'Length of Set of Sphenics List is {len(set(sphenics_lst))}')
         t1 = time.time()
         print(f'Took {round(t1-t0, 2)} seconds to run')
+        
+    if sys.argv[1] == 'get_first_img':
+        fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
+        dct = unpickle(fn)
+        dct.keys()
+        
+        tst_img = dct[b'data'][0]
+        
+        tst_img_r = tst_img[:1024]
+        r = np.reshape(tst_img_r, (32,32))
+        tst_img_g = tst_img[1024:2048]
+        g = np.reshape(tst_img_g, (32,32))
+        tst_img_b = tst_img[-1024:]
+        b = np.reshape(tst_img_b, (32,32))
+        
+        array = np.dstack((r,g,b))
+        
+        img = Image.fromarray(array)
+        img.save('testrgb.png')
+        print('Test image saved in cd.')
+        t1 = time.time()
+        print(f'Took {round(t1-t0, 2)} seconds to run')
+        
+    if sys.argv[1] == 'transform_first_img':
+        
+        #grab that first froggo image
+        dct = unpickle(fn)
+        dct.keys()
+        
+        tst_img = dct[b'data'][0]
+        
+        tst_img_r = tst_img[:1024]
+        r = np.reshape(tst_img_r, (32,32))
+        tst_img_g = tst_img[1024:2048]
+        g = np.reshape(tst_img_g, (32,32))
+        tst_img_b = tst_img[-1024:]
+        b = np.reshape(tst_img_b, (32,32))
+        
+        #put it in (32,32,3) uint8 np array
+        img_array = np.dstack((r,g,b))
+        
+        
+        #go get that list of sphenics
+        max_index = 768
+        primes = gen_primes(max_index)
+        data_dct = split_primes(primes)
+
+            
+        prm_array_r = tuple([data_dct['prime_r'][tst_img_r[i]] 
+                       for i in range(len(tst_img_r))])
+        prm_array_g = tuple([data_dct['prime_g'][tst_img_g[i]] 
+                       for i in range(len(tst_img_g))])
+        prm_array_b = tuple([data_dct['prime_b'][tst_img_b[i]] 
+                       for i in range(len(tst_img_b))])
+        
+        
+        prm_prdct_lst = []
+        for i in range(len(prm_array_r)):
+            prdct = prm_array_r[i]*prm_array_g[i]*prm_array_b[i]
+            prm_prdct_lst.append(prdct)
+            
+        print(f'{len(prm_array_r)} = {len(prm_prdct_lst)}???')
+        
+        prm_array = np.reshape(np.asarray(prm_prdct_lst), (32,32))
+        
+            
+            
+
+
+        
         
 
 
