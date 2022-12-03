@@ -8,11 +8,10 @@ Created on Tue Jan 18 09:40:25 2022
 
 import itertools
 import numpy as np
+import pickle
 from PIL import Image
 import sys
 import time
-
-
 
 def gen_primes(max_index):
     """Function:
@@ -22,10 +21,6 @@ def gen_primes(max_index):
     Generate an infinite sequence of prime numbers.
     """
     # Maps composites to primes witnessing their compositeness.
-    # This is memory efficient, as the sieve is not "run forward"
-    # indefinitely, but only as long as required by the current
-    # number being tested.
-    #
     D = {}
     
     # The running integer that's checked for primeness
@@ -34,18 +29,10 @@ def gen_primes(max_index):
     while len(D) < max_index:
         if q not in D:
             # q is a new prime.
-            # Yield it and mark its first multiple that isn't
-            # already marked in previous iterations
-            # 
             yield q
             D[q * q] = [q]
         else:
-            # q is composite. D[q] is the list of primes that
-            # divide it. Since we've reached q, we no longer
-            # need it in the map, but we'll mark the next 
-            # multiples of its witnesses to prepare for larger
-            # numbers
-            # 
+            # q is composite.
             for p in D[q]:
                 D.setdefault(p + q, []).append(p)
             del D[q]
@@ -73,7 +60,9 @@ def get_sphenics(lst_lst, dct_tf):
         return list(sphenics_dct.keys())
 
 def rgb2prm(fn, n_imgs=10):
-    
+    '''given an image(s), transform them from 32x32x3 arrays to a 32x32 array 
+       using dictionary of sphenics to represent color'''
+       
     #grab batch of images
     dct = unpickle(fn)
     
@@ -103,7 +92,7 @@ def rgb2prm(fn, n_imgs=10):
         
         
         #go get that list of sphenics
-        max_index = 768
+        max_index = 256*3 #number of shades * number of colors
         primes = gen_primes(max_index)
         data_dct = split_primes(primes)
     
@@ -129,6 +118,7 @@ def rgb2prm(fn, n_imgs=10):
 
 
 def split_primes(gen_o_primes):
+    '''create dictionary of primes for red, green, blue as keys'''
     
     r = 1
     g = 2
@@ -165,29 +155,21 @@ def split_primes(gen_o_primes):
     return dct_primes
 
 def unpickle(file):
-    '''From CIFAR-10 README (http://www.cs.toronto.edu/~kriz/cifar.html):   
-    data -- a 10000x3072 numpy array of uint8s. 
-            Each row of the array stores a 32x32 colour image. 
-            The first 1024 entries contain the red channel values, 
-            the next 1024 the green, and the final 1024 the blue. 
-            The image is stored in row-major order, 
-            so that the first 32 entries of the array are the red 
-            channel values of the first row of the image.
-    labels -- a list of 10000 numbers in the range 0-9. 
-            The number at index i indicates the label of the ith image 
-            in the array data.
-'''
-    import pickle
-    with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding='bytes')
-    return dict
+    '''func to unpickle a file'''
+    
+    with open(file, 'rb') as g:
+        dct = pickle.load(g, encoding='bytes')
+    return dct
             
 
 if __name__ == "__main__":
     t0 = time.time()
     
     if sys.argv[1] == 'chck_sphncs':
-        max_index = 768
+        
+        max_index = 256*3 #need as many prime numbers as color * shade
+         
+        #get list of prime numbers
         primes = gen_primes(max_index)
         
         data_dct = split_primes(primes)
@@ -195,7 +177,6 @@ if __name__ == "__main__":
         for i in data_dct:
             lst_lst.append(data_dct[i])
             
-        
         sphenics_lst = get_sphenics(lst_lst, False)
         
         print(f'Length of Sphenics List is {len(sphenics_lst)}')
@@ -204,7 +185,13 @@ if __name__ == "__main__":
         print(f'Took {round(t1-t0, 2)} seconds to run')
         
     if sys.argv[1] == 'get_first_img':
-        fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
+        
+        fn = input('''If you do not have cifar, you can download it here: 
+              https://www.cs.toronto.edu/~kriz/cifar.html . Otherwise,
+              nter path to cifar dataset folder. \n''')
+              
+        #fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
+        
         dct = unpickle(fn)
         dct.keys()
         
@@ -221,15 +208,19 @@ if __name__ == "__main__":
         
         img = Image.fromarray(array)
         img.save('testrgb.png')
-        print('Test image saved in cd.')
+        print('Test image saved in current directory.')
         t1 = time.time()
         print(f'Took {round(t1-t0, 2)} seconds to run')
         
     if sys.argv[1] == 'transform_first_img':
         
-        fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
+        fn = input('''If you do not have cifar, you can download it here: 
+              https://www.cs.toronto.edu/~kriz/cifar.html . Otherwise,
+              nter path to cifar dataset folder. \n''')
         
-        #grab that first froggo image
+        # fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
+        
+        #grab that first image
         dct = unpickle(fn)
         dct.keys()
         
@@ -251,7 +242,7 @@ if __name__ == "__main__":
         
         
         #go get that list of sphenics
-        max_index = 768
+        max_index = 256*3 #need as many prime numbers as color * shade
         primes = gen_primes(max_index)
         data_dct = split_primes(primes)
 
@@ -288,7 +279,12 @@ if __name__ == "__main__":
         
         
     if sys.argv[1] == 'transform_img_batch':
-        fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
+        
+        fn = input('''If you do not have cifar, you can download it here: 
+              https://www.cs.toronto.edu/~kriz/cifar.html . Otherwise,
+              nter path to cifar dataset folder. \n''')
+              
+        # fn = r'/home/carl1/projects/cifar-10-batches-py/data_batch_1'
         
         num_images = input('How many images would you like to transform? ')
             
